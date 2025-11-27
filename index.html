@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador CICS 3270 - Multi-Telas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Painel de Controle -->
+    <div class="control-panel">
+        <div class="control-header">
+            <div class="control-title">🖥️ CICS Multi-Screen Terminal Simulator</div>
+            <button class="add-screen-btn" onclick="openFileModal()">
+                Carregar Telas TXT
+            </button>
+        </div>
+
+        <div class="screen-manager">
+            <!-- Lista de Telas -->
+            <div class="screen-list">
+                <div class="screen-list-header">
+                    <span class="screen-list-title">📁 Telas Carregadas</span>
+                    <span id="screenCount" style="color: var(--success-color); font-size: 13px; font-weight: 600;">0 telas</span>
+                </div>
+                <div class="screens-container" id="screensContainer">
+                    <!-- Telas serão listadas aqui -->
+                </div>
+            </div>
+
+            <!-- Navegação entre Telas -->
+            <div class="navigation-panel">
+                <div class="nav-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🔄 Mapeamento de Navegação</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="rulesCount" style="color: var(--success-color); font-size: 13px; font-weight: 600;">0 regras</span>
+                        <button class="export-btn" onclick="openImportModal()" title="Importar regras">📥 Importar</button>
+                        <button class="export-btn" onclick="openExportModal()" title="Exportar regras">📤 Exportar</button>
+                    </div>
+                </div>
+                <div class="nav-mapping" id="navMapping">
+                    <!-- Regras de navegação aqui -->
+                </div>
+                <button class="add-nav-btn" onclick="addNavigationRule()">
+                    Adicionar Regra de Navegação
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminal Principal -->
+    <div class="terminal-frame">
+        <div class="terminal-header">
+            <div class="terminal-title">CICS TERMINAL - SESSION A01</div>
+            <div class="screen-indicator">
+                <span class="current-screen-name" id="currentScreenName">NENHUMA TELA</span>
+            </div>
+            <div class="connection-status">
+                <span style="font-size: 12px;">CONNECTED</span>
+                <div class="status-indicator"></div>
+            </div>
+        </div>
+
+        <div class="terminal-screen" id="terminal">
+            <div class="cursor" id="cursor"></div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span id="cursorPos">01/01</span>
+                <span id="fieldInfo">READY</span>
+            </div>
+            <div class="status-item">
+                <span class="screen-counter">
+                    Tela <span id="currentScreenIndex">0</span> de <span id="totalScreens">0</span>
+                </span>
+            </div>
+            <div class="status-item">
+                <span id="time"></span>
+            </div>
+        </div>
+
+        <div class="function-keys">
+            <div class="function-key" data-key="PF1">PF1<br>HELP</div>
+            <div class="function-key" data-key="PF2">PF2<br>SPLIT</div>
+            <div class="function-key" data-key="PF3">PF3<br>EXIT</div>
+            <div class="function-key" data-key="PF4">PF4<br>RETURN</div>
+            <div class="function-key" data-key="PF5">PF5<br>RFIND</div>
+            <div class="function-key" data-key="PF6">PF6<br>RCHANGE</div>
+            <div class="function-key nav-key" data-key="PF7">PF7<br>⬆ PREV</div>
+            <div class="function-key nav-key" data-key="PF8">PF8<br>⬇ NEXT</div>
+            <div class="function-key" data-key="PF9">PF9<br>SWAP</div>
+            <div class="function-key" data-key="PF10">PF10<br>LEFT</div>
+            <div class="function-key" data-key="PF11">PF11<br>RIGHT</div>
+            <div class="function-key" data-key="PF12">PF12<br>CANCEL</div>
+            <div class="function-key" data-key="ENTER">ENTER<br>SUBMIT</div>
+        </div>
+    </div>
+
+    <!-- Modal de Carregamento de Arquivos -->
+    <div class="modal-overlay" id="fileModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📂 Carregar Arquivos de Tela</div>
+                <button class="modal-close" onclick="closeFileModal()">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="file-drop-zone" id="dropZone" onclick="selectFiles()">
+                    <div class="file-drop-icon">📁</div>
+                    <div>Clique para selecionar ou arraste arquivos TXT aqui</div>
+                    <div style="font-size: 12px; margin-top: 10px; opacity: 0.7;">
+                        Você pode selecionar múltiplos arquivos
+                    </div>
+                </div>
+                
+                <div class="file-list" id="fileList">
+                    <!-- Lista de arquivos será mostrada aqui -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn" onclick="closeFileModal()">Cancelar</button>
+                <button class="modal-btn primary" onclick="loadSelectedFiles()">Carregar Telas</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagens de Status -->
+    <div class="status-message" id="statusMessage"></div>
+    
+    <!-- Loader -->
+    <div class="loader" id="loader">
+        <div class="loader-text">PROCESSING...</div>
+    </div>
+
+    <!-- Botão de Alternância de Tema -->
+    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Alternar Tema">🌓</button>
+
+    <!-- Botão de Ajuda -->
+    <button class="help-btn" onclick="showHelp()">?</button>
+
+    <!-- Painel de Validação de Campos (Opcional) -->
+    <div class="validation-panel collapsed" id="validationPanel">
+        <div class="validation-header" onclick="toggleValidationPanel()">
+            <span class="validation-title">Configuração de Validação de Campos (Opcional)</span>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn" onclick="event.stopPropagation(); openValidationExportModal()" 
+                        style="padding: 5px 10px; font-size: 11px;">📤 Exportar</button>
+                <button class="toggle-btn" id="toggleValidationBtn">Expandir</button>
+            </div>
+        </div>
+        
+        <div class="validation-content">
+            <div class="validation-global-config">
+                <div class="validation-keys-header">
+                    <h3 class="validation-keys-title">🔑 Teclas que Validam Campos</h3>
+                    <span class="validation-keys-subtitle">Marque as teclas que devem validar os campos antes de executar</span>
+                </div>
+                <div class="validation-keys-grid">
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="ENTER" onchange="updateValidationKeys()" checked>
+                        <span class="key-name">ENTER</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF1" onchange="updateValidationKeys()">
+                        <span class="key-name">PF1</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF2" onchange="updateValidationKeys()">
+                        <span class="key-name">PF2</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF3" onchange="updateValidationKeys()">
+                        <span class="key-name">PF3</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF4" onchange="updateValidationKeys()">
+                        <span class="key-name">PF4</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF5" onchange="updateValidationKeys()">
+                        <span class="key-name">PF5</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF6" onchange="updateValidationKeys()">
+                        <span class="key-name">PF6</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF7" onchange="updateValidationKeys()">
+                        <span class="key-name">PF7</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF8" onchange="updateValidationKeys()">
+                        <span class="key-name">PF8</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF9" onchange="updateValidationKeys()">
+                        <span class="key-name">PF9</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF10" onchange="updateValidationKeys()">
+                        <span class="key-name">PF10</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF11" onchange="updateValidationKeys()">
+                        <span class="key-name">PF11</span>
+                    </label>
+                    <label class="validation-key-item">
+                        <input type="checkbox" value="PF12" onchange="updateValidationKeys()">
+                        <span class="key-name">PF12</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="validation-fields-section">
+                <div class="fields-list">
+                    <div class="fields-list-header">
+                        <h3 class="fields-list-title">📋 Campos da Tela Atual</h3>
+                    </div>
+                    <div id="fieldsListContainer" class="fields-container">
+                        <div class="no-data-message">Nenhuma tela carregada</div>
+                    </div>
+                </div>
+                
+                <div class="validation-config" id="validationConfig">
+                    <div class="validation-config-header">
+                        <h3 class="validation-config-title">⚙️ Configurar Validações</h3>
+                    </div>
+                    <div id="fieldConfigContent" class="field-config-content">
+                        <div class="no-data-message">Selecione um campo à esquerda</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exportação -->
+    <div class="modal-overlay" id="exportModalOverlay">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">📤 Exportar Regras de Navegação</h2>
+                <button class="close-btn modal-close" onclick="closeExportModal()">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <p class="modal-description">
+                    Escolha o formato de exportação para usar as regras no seu programa CICS:
+                </p>
+                
+                <div class="export-options">
+                    <button class="export-option-btn" onclick="exportAsJSON()">
+                        <div class="export-icon">📄</div>
+                        <div class="export-title">JSON</div>
+                        <div class="export-desc">Formato estruturado, fácil de importar</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportAsCobol()">
+                        <div class="export-icon">📝</div>
+                        <div class="export-title">COBOL</div>
+                        <div class="export-desc">Código COBOL com EVALUATE statements</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportAsTable()">
+                        <div class="export-icon">📊</div>
+                        <div class="export-title">Tabela SQL</div>
+                        <div class="export-desc">INSERT statements para banco de dados</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportAsExcel()">
+                        <div class="export-icon">📗</div>
+                        <div class="export-title">Excel (XLSX)</div>
+                        <div class="export-desc">Planilha formatada com fórmulas</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportAsCSV()">
+                        <div class="export-icon">📋</div>
+                        <div class="export-title">CSV</div>
+                        <div class="export-desc">Compatível com qualquer planilha</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportAsXML()">
+                        <div class="export-icon">🗂️</div>
+                        <div class="export-title">XML</div>
+                        <div class="export-desc">Formato XML para integração</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportAsDocumentation()">
+                        <div class="export-icon">📖</div>
+                        <div class="export-title">Documentação</div>
+                        <div class="export-desc">HTML formatado para leitura</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Importação -->
+    <div class="modal-overlay" id="importModalOverlay">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">📥 Importar Regras de Navegação</h2>
+                <button class="close-btn modal-close" onclick="closeImportModal()">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <p class="modal-description">
+                    Carregue um arquivo com regras de navegação. O sistema tentará associar automaticamente às telas carregadas.
+                </p>
+                
+                <div class="import-info">
+                    <strong class="info-title">ℹ️ Informações importantes:</strong>
+                    <ul class="info-list">
+                        <li>Carregue suas telas ANTES de importar as regras</li>
+                        <li>O sistema tentará encontrar telas pelo nome</li>
+                        <li>Se uma tela não for encontrada, você poderá associá-la manualmente</li>
+                        <li>Formatos aceitos: JSON, CSV, Excel (.xls)</li>
+                    </ul>
+                </div>
+
+                <div class="import-drop-zone" id="importDropZone" onclick="selectImportFile()">
+                    <div class="file-drop-icon">📁</div>
+                    <div>Clique para selecionar arquivo ou arraste aqui</div>
+                    <div style="font-size: 12px; margin-top: 10px; opacity: 0.7;">
+                        JSON, CSV ou Excel (.xls)
+                    </div>
+                </div>
+
+                <div id="importPreview" style="display: none; margin-top: 20px;">
+                    <h3 class="preview-title">📋 Pré-visualização</h3>
+                    <div id="importPreviewContent" class="import-preview-content">
+                        <!-- Preview das regras aqui -->
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="modal-btn" onclick="closeImportModal()">Cancelar</button>
+                        <button class="modal-btn primary" onclick="confirmImport()">✅ Importar Regras</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exportação de Validações -->
+    <div class="modal-overlay" id="validationExportModalOverlay">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">📤 Exportar Configurações de Validação</h2>
+                <button class="close-btn modal-close" onclick="closeValidationExportModal()">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <p class="modal-description">
+                    Escolha o formato de exportação para as validações e variáveis BMS:
+                </p>
+                
+                <div class="export-options">
+                    <button class="export-option-btn" onclick="exportValidationsAsJSON()">
+                        <div class="export-icon">📄</div>
+                        <div class="export-title">JSON</div>
+                        <div class="export-desc">Todas as configurações em formato JSON</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportValidationsAsCobol()">
+                        <div class="export-icon">💻</div>
+                        <div class="export-title">COBOL</div>
+                        <div class="export-desc">Programa com lógica de validação</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportValidationsAsExcel()">
+                        <div class="export-icon">📗</div>
+                        <div class="export-title">Excel (XLSX)</div>
+                        <div class="export-desc">Planilha com campos e validações</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportValidationsAsCSV()">
+                        <div class="export-icon">📋</div>
+                        <div class="export-title">CSV</div>
+                        <div class="export-desc">Lista de campos e validações</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="openBMSExportOptions()">
+                        <div class="export-icon">📝</div>
+                        <div class="export-title">BMS</div>
+                        <div class="export-desc">Definição de campos para BMS</div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportValidationsAsCopybook()">
+                        <div class="export-icon">📄</div>
+                        <div class="export-title">Copybook</div>
+                        <div class="export-desc">Copybook COBOL com campos BMS</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Opções BMS -->
+    <div class="modal-overlay" id="bmsOptionsModalOverlay">
+        <div class="modal export-modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">📝 Opções de Exportação BMS</h2>
+                <button class="close-btn modal-close" onclick="closeBMSOptionsModal()">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <p class="modal-description" style="margin-bottom: 25px;">
+                    Como deseja exportar os textos fixos (labels) da tela?
+                </p>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button class="export-option-btn" onclick="exportValidationsAsBMS(true)" style="text-align: left;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div class="export-icon">✅</div>
+                            <div>
+                                <div class="export-title">COM Variáveis</div>
+                                <div class="export-desc">Cria DFHMDF para cada label (LBL0, LBL1, etc.)</div>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <button class="export-option-btn" onclick="exportValidationsAsBMS(false)" style="text-align: left;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div class="export-icon">💬</div>
+                            <div>
+                                <div class="export-title">SEM Variáveis</div>
+                                <div class="export-desc">Labels apenas como comentários no arquivo</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Associação Manual -->
+    <div class="modal-overlay" id="mappingModalOverlay">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🔗 Associar Telas às Regras</h2>
+                <button class="close-btn modal-close" onclick="closeMappingModal()">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: var(--text-medium);">
+                    Algumas regras não puderam ser associadas automaticamente. Selecione manualmente as telas correspondentes:
+                </p>
+                
+                <div id="mappingList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Lista de associações aqui -->
+                </div>
+
+                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="modal-btn" onclick="closeMappingModal()">Cancelar</button>
+                    <button class="modal-btn primary" onclick="saveMappings()">💾 Salvar Associações</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input de arquivo oculto -->
+    <input type="file" id="fileInput" style="display: none;" accept=".txt" multiple>
+    <input type="file" id="importFileInput" style="display: none;" accept=".json,.csv,.xls,.xlsx">
+
+    <script src="js/app.js"></script>
+</body>
+</html>
