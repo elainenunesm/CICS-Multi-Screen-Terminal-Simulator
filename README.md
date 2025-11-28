@@ -1,5 +1,16 @@
 # CICS-Multi-Screen-Terminal-Simulator
 
+Uma ferramenta web gratuita que permite criar protótipos de telas 3270, navegar entre múltiplas telas, validar campos e exportar código BMS automaticamente — tudo sem precisar de um ambiente CICS real. Ideal para quem desenvolve em COBOL/CICS ou está começando no mundo mainframe.
+
+**Link:**
+
+[🖥️ CICS Multi-Screen Terminal Simulator](https://elainenunesm.github.io/CICS-Multi-Screen-Terminal-Simulator/)
+
+
+**Informação para navegação no terminal:**
+
+No terminal use a tecla tab.
+
 # Resumo
 Este artigo apresenta o CICS Screen Simulator, uma ferramenta web desenvolvida em HTML, CSS e JavaScript que permite a prototipação visual de telas de terminais 3270 (terminais do mainframe), simulação de navegação multi-screen e geração automática de código BMS (Basic Mapping Support). 
 
@@ -69,14 +80,16 @@ PF1-PF24, PA1-PA3, Enter, Clear
 
 O BMS é a camada de mapeamento do CICS que separa a lógica de apresentação da lógica de negócio. Um mapa BMS define:
 
-│  **MAPSET** (Conjunto de Mapas)                          
+
+```bms
+│  MAPSET (Conjunto de Mapas)                          
 │  ├── MAP 1 (Tela individual)                         
 │  │   ├── FIELD 1 (Campo: posição, tamanho, atrib.)   
 │  │   ├── FIELD 2                                     
 │  │   └── FIELD N                                     
 │  ├── MAP 2                                           
 │  └── MAP N  
-
+```
 ## 3. Casos de Uso
 ### 3.1 Caso de Uso 1: Prototipação Rápida
 
@@ -154,7 +167,7 @@ PF3=VOLTAR PF7=ANTERIOR PF8=PRÓXIMOPF12=AJUDA ENTER=DETALHAR
 ```
 * O txt precisa tem:
     *  24 linhas;
-    *  80 colunas;
+    *  80 bytes de colunas;
     *  A primeira linha em branco;
     *  E os campos de digitação minúsculo Alfa(zzz) númerico(xxx).
 
@@ -164,37 +177,41 @@ PF3=VOLTAR PF7=ANTERIOR PF8=PRÓXIMOPF12=AJUDA ENTER=DETALHAR
 
 - Clicar no botão Carregar Telas TXT, importar 
 
-![Carregar Telas TXT](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Carregar_telas_txt.jpg "Carregar Telas TXT")
+![Carregar Telas TXT](https://github.com/user-attachments/assets/624c96e8-07da-4b9e-908b-f1161b9a420b "Carregar Telas TXT")
 
 - No botão Carregar Telas TXT, importar
 
-![Pós carregamento txt](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Apos_carregar_txt.jpg "Carregar Telas TXT")
+![Pós carregamento txt](https://github.com/user-attachments/assets/261f8efc-7d03-4a47-bf6e-445dde087645 "Pós carregamento txt")
 
 - Tela carregou corretamente
 
-![Carregamento da tela](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/tela_carregou_corretamente.jpg "Carregamento da tela")
+![Carregamento da tela](https://github.com/user-attachments/assets/db68a321-9e09-466c-b7a5-61d7c4a75aeb "Carregamento da tela")
+
+- Para mostrar no terminal outras telas carregadas só clicar com mouse, como no exemplo abaixo.
+
+![carregar outras telas](https://github.com/user-attachments/assets/0b35482a-b9a0-4ea9-b6a5-4e737321118c "carregar outras telas")
 
 - Configurar campos
 Em Configuração de Validação de Campos (Opcional)
 > Permite configurar teclas que validam campos
 
-![Configurar campos](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Configura%C3%A7%C3%A3o_campos%20pfs.jpg "Configurar campos")
+![Configurar campos](https://private-user-images.githubusercontent.com/9143866/519967309-f5760eed-7600-480c-a51d-453527413c93.jpg?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjQzMDU3NDYsIm5iZiI6MTc2NDMwNTQ0NiwicGF0aCI6Ii85MTQzODY2LzUxOTk2NzMwOS1mNTc2MGVlZC03NjAwLTQ4MGMtYTUxZC00NTM1Mjc0MTNjOTMuanBnP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI1MTEyOCUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNTExMjhUMDQ1MDQ2WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NDk2Y2RjMzBmMjgzM2NhNTFjNjhhZWJlOGRlZTg3YmY0N2Y0NmJmM2FhZTA0ZDQ2MWI3NDE5YzRjZmVjM2M3ZiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QifQ.PPlq5RK2kPjy1sdLr74xNy4Z0t4pYQGaAmNbd50fNkc "Configurar campos")
 
 - Lado esquerdo ficam os campos da tela atual.
 
-![Campos tela atual](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Campos_lado_esquerdo.jpg "Campos tela atual")
+![Campos tela atual](https://github.com/user-attachments/assets/8ce3b1aa-fb37-4e9d-92e8-d58950e1a1b6 "Campos tela atual")
 
 - Rolando mais a tela chega na opção atributos BMS.
 
-![Atributos BMS](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Atributos_exportar_bms.jpg "Atributos BMS")
+![Atributos BMS](https://github.com/user-attachments/assets/80d2ff67-310e-4d88-a49c-60111d839af0 "Atributos BMS")
 
 - Opção exportar BMS.
 
-![Opção exportar BMS](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Op%C3%A7%C3%A3o_exportar_BMS.jpg "Opção exportar BMS")
+![Opção exportar BMS](https://github.com/user-attachments/assets/d7d867c6-fc96-4c25-bbf9-23e920b8aeb8 "Opção exportar BMS")
 
 - Selecionar BMS.
 
-![Opção BMS](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Op%C3%A7%C3%A3o_BMS.jpg "Opção BMS")
+![Opção BMS](https://github.com/user-attachments/assets/f08ffc32-bdba-4c87-a6bd-11728962d52d "Opção BMS")
 
 - Código exportado.
 
@@ -261,11 +278,11 @@ OPCAOI DFHMDF POS=(3,8),                                               -
 
 - Tema dark que simula o mainframe.
 
-![Tema dark simulador](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Tema_dark1.jpg "Tema dark simulador")
+![Tema dark simulador](https://github.com/user-attachments/assets/065eae88-8ed1-4a8b-9919-b51b21cb500b "Tema dark simulador")
 
 - Terminal.
 
-![Terminal](https://onedrive.live.com/personal/5a5e94cca4021dae/Documents/imagens1/Tema_dark2.jpg "Terminal")
+![Terminal](https://github.com/user-attachments/assets/189de18a-d2ef-4908-9e1b-41772303dae7 "Terminal")
 
   * Texto em verde sobre fundo preto
   * Fonte monoespaçada
@@ -325,8 +342,10 @@ As opções de exportação já estão funcionando, porém ainda apresentam algu
 
 Embora a aplicação já esteja operando, ela ainda necessita de testes mais robustos e de correções adicionais. Mesmo assim, as funcionalidades principais — exportar BMS e simular navegação — já estão funcionando satisfatoriamente.
 
+Atualmente, a interface ainda não é responsiva.
+
 Este é apenas o primeiro artigo. Publicarei outros conteúdos explicando como utilizar a ferramenta para fins de estudo.
 
 Obrigada!
 
-Palavras-chave: CICS, BMS, Mainframe, Simulador, Prototipação, 3270, Treinamento
+> Palavras-chave: CICS, BMS, Mainframe, Simulador, Prototipação, 3270, Treinamento
