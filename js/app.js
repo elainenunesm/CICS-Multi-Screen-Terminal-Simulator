@@ -577,6 +577,7 @@
                                 
                                 // Detectar PF keys no INITIAL (formato: PF3=SAIR, PF7/PF8=NAVEGAR, etc)
                                 const text = field.initial;
+                                console.log('[BMS Parser] Testando INITIAL:', text);
                                 
                                 // Padrão 1: PF3=SAIR (captura labels com espaços e caracteres especiais)
                                 const matches1 = text.matchAll(/PF(\d+)\s*=\s*([^,\s][^,]*?)(?=\s{2,}|\s*PF\d|\s*ENTER\s*=|\s*$)/gi);
@@ -585,7 +586,7 @@
                                     const label = match[2].trim();
                                     if (label) {
                                         pfKeysFound[key] = label;
-                                        console.log(`PF key encontrada: ${key} = ${label}`);
+                                        console.log(`[PF Detection] ${key} = "${label}"`);
                                     }
                                 }
                                 
@@ -595,9 +596,11 @@
                                     const label = enterMatch[1].trim();
                                     if (label) {
                                         pfKeysFound['ENTER'] = label;
-                                        console.log(`PF key encontrada: ENTER = ${label}`);
+                                        console.log(`[PF Detection] ENTER = "${label}"`);
                                     }
                                 }
+                                
+                                console.log('[BMS Parser] PF Keys encontradas até agora:', pfKeysFound);
                                 
                                 // Padrão 3: PF7/PF8=NAVEGAR (múltiplas keys com mesmo label)
                                 const matches2 = text.matchAll(/PF(\d+)(?:\/PF(\d+))+=([\w\s-]+)/gi);
@@ -723,6 +726,12 @@
             const initialMatch = line.match(/INITIAL='([^']*)'/);
             if (initialMatch) {
                 field.initial = initialMatch[1];
+            } else {
+                // Tentar capturar INITIAL sem aspa de fechamento (linha quebrada)
+                const initialMatch2 = line.match(/INITIAL='(.+)$/);
+                if (initialMatch2) {
+                    field.initial = initialMatch2[1].trim();
+                }
             }
             
             return field;
@@ -2512,29 +2521,11 @@
         }
 
         function showHelp() {
-            alert(`
-                AJUDA DO TERMINAL CICS
-                =====================
-                
-                NAVEGAÇÃO:
-                • TAB - Próximo campo
-                • SHIFT+TAB - Campo anterior
-                • PageUp/PF7 - Tela anterior
-                • PageDown/PF8 - Próxima tela
-                
-                EDIÇÃO:
-                • Digite normalmente nos campos
-                • ESC - Limpar campo atual
-                • F5 - Limpar todos os campos
-                
-                CONTROLE:
-                • ENTER - Submeter dados
-                • F3 - Sair/Voltar
-                
-                CAMPOS:
-                • Azul - Numérico (apenas números)
-                • Verde - Alfanumérico (texto)
-            `);
+            document.getElementById('helpModalOverlay').classList.add('show');
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModalOverlay').classList.remove('show');
         }
 
         // Alternar Tema (Light/Dark)
@@ -3983,6 +3974,91 @@
                 return line + (continuation ? '-' : ' ') + '\n';
             }
             
+            // Função para gerar DFHMDF de texto, quebrando em múltiplos DFHMDF se necessário
+            function generateTextDFHMDF(text, row, col, includeVar = false, varName = '') {
+                let result = '';
+                const screenWidth = 80; // Largura da tela CICS
+                const maxBMSLine = 71; // Máximo de caracteres antes do hífen/espaço
+                let currentCol = col;
+                let remainingText = text;
+                let isFirstDFHMDF = true;
+                
+                while (remainingText.length > 0) {
+                    // Calcular quanto cabe na tela nesta posição
+                    const availableSpace = screenWidth - currentCol;
+                    
+                    if (availableSpace <= 0) {
+                        console.warn(`Texto ultrapassa limite da tela na linha ${row + 1}`);
+                        break;
+                    }
+                    
+                    // Montar a linha BMS para calcular o tamanho
+                    const prefix = includeVar && isFirstDFHMDF ? varName.padEnd(6) : '       ';
+                    
+                    // Tentar encaixar o máximo de texto possível
+                    let maxTextLength = availableSpace;
+                    let foundFit = false;
+                    
+                    while (maxTextLength > 0 && !foundFit) {
+                        const testChunk = remainingText.substring(0, maxTextLength);
+                        
+                        // Construir linha BMS completa para testar
+                        const posLine = `${prefix} DFHMDF POS=(${row + 1},${currentCol + 1}),`;
+                        const lengthLine = `              LENGTH=${testChunk.length},`;
+                        const attrbLine = `              ATTRB=(ASKIP,NORM),`;
+                        const initialLine = `              INITIAL='${testChunk}'`;
+                        
+                        // Verificar se todas as linhas cabem em 72 colunas
+                        if (posLine.length <= maxBMSLine && 
+                            lengthLine.length <= maxBMSLine && 
+                            attrbLine.length <= maxBMSLine && 
+                            initialLine.length <= maxBMSLine) {
+                            foundFit = true;
+                        } else {
+                            // Reduzir o tamanho do texto
+                            maxTextLength--;
+                        }
+                    }
+                    
+                    if (maxTextLength <= 0) {
+                        console.error(`Não foi possível encaixar texto na linha ${row + 1}, col ${currentCol + 1}`);
+                        break;
+                    }
+                    
+                    // Pegar o chunk que cabe
+                    let chunk = remainingText.substring(0, maxTextLength);
+                    
+                    // Se não for o último pedaço, tentar quebrar em um espaço
+                    if (maxTextLength < remainingText.length) {
+                        const lastSpace = chunk.lastIndexOf(' ');
+                        if (lastSpace > 0) {
+                            chunk = chunk.substring(0, lastSpace);
+                        }
+                    }
+                    
+                    // Remover espaços do início (exceto no primeiro DFHMDF)
+                    if (!isFirstDFHMDF) {
+                        chunk = chunk.trimStart();
+                    }
+                    
+                    const actualLength = chunk.length;
+                    
+                    // Gerar o DFHMDF para este pedaço
+                    const prefix2 = includeVar && isFirstDFHMDF ? varName.padEnd(6) : '       ';
+                    result += formatBMSLine(`${prefix2} DFHMDF POS=(${row + 1},${currentCol + 1}),`, true);
+                    result += formatBMSLine(`              LENGTH=${actualLength},`, true);
+                    result += formatBMSLine(`              ATTRB=(ASKIP,NORM),`, true);
+                    result += formatBMSLine(`              INITIAL='${chunk}'`);
+                    
+                    // Atualizar para próxima iteração
+                    remainingText = remainingText.substring(chunk.length).trimStart();
+                    currentCol += actualLength;
+                    isFirstDFHMDF = false;
+                }
+                
+                return result;
+            }
+            
             let bms = `* ========================================\n`;
             bms += `* BMS MAP DEFINITIONS\n`;
             bms += `* Generated on ${new Date().toLocaleString()}\n`;
@@ -4174,20 +4250,14 @@
                 // Gerar definições BMS na ordem
                 allElements.forEach(element => {
                     if (element.type === 'label') {
-                        // Labels - COM ou SEM variável
-                        if (includeLabels) {
-                            // COM variável - cada parâmetro em uma linha
-                            bms += formatBMSLine(`${element.name} DFHMDF POS=(${element.row + 1},${element.col + 1}),`, true);
-                            bms += formatBMSLine(`              LENGTH=${element.length},`, true);
-                            bms += formatBMSLine(`              ATTRB=(ASKIP,NORM),`, true);
-                            bms += formatBMSLine(`              INITIAL='${element.text}'`);
-                        } else {
-                            // SEM variável - cada parâmetro em uma linha
-                            bms += formatBMSLine(`       DFHMDF POS=(${element.row + 1},${element.col + 1}),`, true);
-                            bms += formatBMSLine(`              LENGTH=${element.length},`, true);
-                            bms += formatBMSLine(`              ATTRB=(ASKIP,NORM),`, true);
-                            bms += formatBMSLine(`              INITIAL='${element.text}'`);
-                        }
+                        // Labels - usar função que quebra em múltiplos DFHMDF se necessário
+                        bms += generateTextDFHMDF(
+                            element.text, 
+                            element.row, 
+                            element.col, 
+                            includeLabels, 
+                            includeLabels ? element.name : ''
+                        );
                     } else {
                         // Campos editáveis - cada parâmetro em uma linha
                         const field = element.field;
@@ -4273,36 +4343,189 @@
             closeValidationExportModal();
         }
 
-        // Carregar tela de exemplo
+        // Carregar demo completa com múltiplas telas
         function loadExampleScreen() {
-            const exampleContent = `
-        SISTEMA DE CADASTRO - TELA PRINCIPAL                                   
-        =====================================                                   
+            // Tela 1: Menu Principal
+            const menuContent = `
+        ╔═══════════════════════════════════════════════════════════════════════╗
+        ║          SISTEMA INTEGRADO DE GESTÃO - MENU PRINCIPAL                 ║
+        ╚═══════════════════════════════════════════════════════════════════════╝
                                                                                 
-        CODIGO: xxxxxx     NOME: zzzzzzzzzzzzzzzzzzzzzzzzzz                   
+        Selecione uma opção:                                                    
                                                                                 
-        ENDERECO: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz                          
+        1. Cadastro de Clientes                                                 
+        2. Consulta de Pedidos                                                  
+        3. Relatórios                                                           
+        4. Configurações                                                        
                                                                                 
-        TELEFONE: zzzzzzzzzzz    CEP: xxxxxxxxx                               
-                                                                                
-        DATA NASCIMENTO: xx/xx/xxxx                                           
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
+        Opção: x                                                                
                                                                                 
                                                                                 
                                                                                 
                                                                                 
-        PF3=SAIR  PF5=LIMPAR  PF7/PF8=NAVEGAR  ENTER=CONFIRMAR                
                                                                                 
+                                                                                
+                                                                                
+        PF3=SAIR  PF12=AJUDA  ENTER=CONFIRMAR                                   
+        Usuário: ADMIN001                                       Data: 27/11/2025`;
+            
+            // Tela 2: Cadastro de Clientes
+            const cadastroContent = `
+        ╔═══════════════════════════════════════════════════════════════════════╗
+        ║                    CADASTRO DE CLIENTES                               ║
+        ╚═══════════════════════════════════════════════════════════════════════╝
+                                                                                
+        CÓDIGO: xxxxxx                    STATUS: zzzzzzzzzzzzz                
+                                                                                
+        NOME COMPLETO: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+                                                                                
+        CPF/CNPJ: xxxxxxxxxxx             RG: zzzzzzzzzzzzz                    
+                                                                                
+        ENDEREÇO: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+                                                                                
+        CIDADE: zzzzzzzzzzzzzzzzzzzzzz    UF: zz     CEP: xxxxxxxx             
+                                                                                
+        TELEFONE: xxxxxxxxxxx             EMAIL: zzzzzzzzzzzzzzzzzzzzzzzzzz    
+                                                                                
+        OBSERVAÇÕES: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+                     zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+                                                                                
+        PF3=VOLTAR  PF5=LIMPAR  PF12=AJUDA  ENTER=GRAVAR                       
                                                                                 `;
             
-            const screen = new Screen('TELA_EXEMPLO', exampleContent);
-            app.screens.push(screen);
+            // Tela 3: Consulta de Pedidos
+            const consultaContent = `
+        ╔═══════════════════════════════════════════════════════════════════════╗
+        ║                     CONSULTA DE PEDIDOS                               ║
+        ╚═══════════════════════════════════════════════════════════════════════╝
+                                                                                
+        CLIENTE: xxxxxx  Nome: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz    
+                                                                                
+        PERÍODO: xx/xx/xxxx até xx/xx/xxxx                                      
+                                                                                
+        ┌────────┬──────────┬─────────────┬──────────────┬─────────────────┐  
+        │ Pedido │   Data   │   Valor     │   Status     │     Vendedor    │  
+        ├────────┼──────────┼─────────────┼──────────────┼─────────────────┤  
+        │        │          │             │              │                 │  
+        │        │          │             │              │                 │  
+        │        │          │             │              │                 │  
+        │        │          │             │              │                 │  
+        │        │          │             │              │                 │  
+        └────────┴──────────┴─────────────┴──────────────┴─────────────────┘  
+                                                                                
+        Total de Pedidos: 0        Valor Total: R$ 0,00                        
+                                                                                
+        PF3=VOLTAR  PF7=ANTERIOR  PF8=PRÓXIMO  PF12=AJUDA  ENTER=DETALHAR      
+                                                                                `;
+            
+            // Criar as telas
+            const menuScreen = new Screen('MENU', menuContent);
+            const cadastroScreen = new Screen('CAD_CLI', cadastroContent);
+            const consultaScreen = new Screen('CONS_PEDS', consultaContent);
+            
+            // Adicionar as telas
+            app.screens.push(menuScreen);
+            app.screens.push(cadastroScreen);
+            app.screens.push(consultaScreen);
+            
+            // Criar regras de navegação automáticas
+            // Do Menu para Cadastro (opção 1)
+            app.navigationRules.push({
+                id: Date.now() + Math.random(),
+                fromScreen: menuScreen.id,
+                toScreen: cadastroScreen.id,
+                key: 'ENTER',
+                action: 'navigate',
+                message: '',
+                label: 'CONFIRMAR'
+            });
+            
+            // Do Cadastro para Menu (PF3)
+            app.navigationRules.push({
+                id: Date.now() + Math.random(),
+                fromScreen: cadastroScreen.id,
+                toScreen: menuScreen.id,
+                key: 'PF3',
+                action: 'navigate',
+                message: '',
+                label: 'VOLTAR'
+            });
+            
+            // Do Cadastro - Limpar (PF5)
+            app.navigationRules.push({
+                id: Date.now() + Math.random(),
+                fromScreen: cadastroScreen.id,
+                toScreen: null,
+                key: 'PF5',
+                action: 'message',
+                message: 'Campos limpos com sucesso!',
+                label: 'LIMPAR'
+            });
+            
+            // Do Cadastro - Gravar (ENTER)
+            app.navigationRules.push({
+                id: Date.now() + Math.random(),
+                fromScreen: cadastroScreen.id,
+                toScreen: null,
+                key: 'ENTER',
+                action: 'message',
+                message: 'Cliente gravado com sucesso! Código: 000123',
+                label: 'GRAVAR'
+            });
+            
+            // Do Menu para Consulta (opção 2 + ENTER)
+            app.navigationRules.push({
+                id: Date.now() + Math.random(),
+                fromScreen: menuScreen.id,
+                toScreen: consultaScreen.id,
+                key: 'PF8',
+                action: 'navigate',
+                message: '',
+                label: 'PRÓXIMO'
+            });
+            
+            // Da Consulta para Menu (PF3)
+            app.navigationRules.push({
+                id: Date.now() + Math.random(),
+                fromScreen: consultaScreen.id,
+                toScreen: menuScreen.id,
+                key: 'PF3',
+                action: 'navigate',
+                message: '',
+                label: 'VOLTAR'
+            });
+            
+            // Adicionar validações nos campos do cadastro
+            const codigoField = cadastroScreen.fields.find(f => f.label === 'CÓDIGO' || f.row === 4);
+            if (codigoField) {
+                codigoField.isRequired = true;
+                codigoField.addValidation('notZeros', null, 'Código não pode ser zeros');
+            }
+            
+            const nomeField = cadastroScreen.fields.find(f => f.label === 'NOME' || (f.row === 6 && f.col > 10));
+            if (nomeField) {
+                nomeField.isRequired = true;
+                nomeField.addValidation('minLength', 3, 'Nome deve ter no mínimo 3 caracteres');
+            }
+            
+            const cpfField = cadastroScreen.fields.find(f => f.label === 'CPF/CNPJ' || (f.row === 8 && f.type === 'numeric'));
+            if (cpfField) {
+                cpfField.isRequired = true;
+                cpfField.addValidation('exactLength', 11, 'CPF deve ter 11 dígitos');
+            }
+            
+            const emailField = cadastroScreen.fields.find(f => f.label === 'EMAIL' || (f.row === 12 && f.col > 40));
+            if (emailField) {
+                emailField.addValidation('email', null, 'Email inválido');
+            }
+            
+            // Atualizar interface
             updateScreensList();
+            renderNavigationRules();
             loadScreen(0);
+            
+            // Mostrar mensagem de boas-vindas
+            showMessage('🎉 Demo carregada! 3 telas com navegação e validações configuradas. Explore e teste!', 'success');
         }
 
         // Inicializar aplicação

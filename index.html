@@ -464,6 +464,239 @@
     <input type="file" id="fileInput" style="display: none;" accept=".txt" multiple>
     <input type="file" id="importFileInput" style="display: none;" accept=".json,.csv,.xls,.xlsx">
 
+    <!-- Modal de Ajuda/Tutorial -->
+    <div class="modal-overlay" id="helpModalOverlay">
+        <div class="modal help-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">📖 Manual do Simulador CICS 3270</h2>
+                <button class="close-btn modal-close" onclick="closeHelp()">✕</button>
+            </div>
+            
+            <div class="modal-body help-body">
+                <div class="help-section">
+                    <h3 class="help-section-title">🎯 Visão Geral</h3>
+                    <p>Este simulador permite testar telas CICS 3270 com navegação, validação de campos e exportação de definições BMS.</p>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">📂 1. Carregando Telas</h3>
+                    <div class="help-content">
+                        <p><strong>Formatos Suportados:</strong></p>
+                        <ul>
+                            <li><strong>TXT (3270):</strong> Arquivos de texto com layout 24x80
+                                <ul>
+                                    <li>Use <code>x</code> para campos numéricos</li>
+                                    <li>Use <code>z</code> para campos alfanuméricos</li>
+                                    <li>Exemplo: <code>NOME: zzzzzzzzz</code></li>
+                                </ul>
+                            </li>
+                            <li><strong>BMS:</strong> Arquivos com DFHMSD, DFHMDI e DFHMDF</li>
+                        </ul>
+                        
+                        <p><strong>Como Carregar:</strong></p>
+                        <ol>
+                            <li>Clique em "Carregar Telas TXT"</li>
+                            <li>Selecione um ou mais arquivos</li>
+                            <li>Clique em "Carregar Telas"</li>
+                        </ol>
+                        
+                        <div class="help-tip">
+                            💡 <strong>Dica:</strong> Você pode arrastar e soltar arquivos diretamente na área de upload!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">🔑 2. Detectando PF Keys</h3>
+                    <div class="help-content">
+                        <p>O sistema detecta automaticamente PF keys definidas nos arquivos:</p>
+                        
+                        <p><strong>Formato no TXT/BMS:</strong></p>
+                        <pre class="code-example">PF3=SAIR  PF5=LIMPAR  PF7/PF8=NAVEGAR  ENTER=CONFIRMAR</pre>
+                        
+                        <p><strong>Onde colocar:</strong></p>
+                        <ul>
+                            <li><strong>TXT:</strong> Em qualquer linha do arquivo</li>
+                            <li><strong>BMS:</strong> No atributo INITIAL de um DFHMDF</li>
+                        </ul>
+                        
+                        <div class="help-tip">
+                            🔵 <strong>Visual:</strong> PF keys detectadas aparecem com borda azul na tela
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">🔄 3. Navegação entre Telas</h3>
+                    <div class="help-content">
+                        <p><strong>Criação Automática:</strong></p>
+                        <ul>
+                            <li>Ao carregar telas, regras são criadas automaticamente para PF keys detectadas</li>
+                            <li>Você precisa apenas selecionar a tela de destino</li>
+                        </ul>
+                        
+                        <p><strong>Criação Manual:</strong></p>
+                        <ol>
+                            <li>Clique em "Adicionar Regra de Navegação"</li>
+                            <li>Selecione tela de origem</li>
+                            <li>Escolha a tecla (PF1-PF12, ENTER)</li>
+                            <li>Selecione tela de destino ou ação</li>
+                        </ol>
+                        
+                        <p><strong>Tipos de Ação:</strong></p>
+                        <ul>
+                            <li><strong>🔀 Navegar:</strong> Vai para outra tela</li>
+                            <li><strong>💬 Mensagem:</strong> Exibe mensagem na linha 1</li>
+                        </ul>
+                        
+                        <div class="help-tip">
+                            🟢 <strong>Visual:</strong> Regras completas aparecem com borda verde
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">✅ 4. Validação de Campos</h3>
+                    <div class="help-content">
+                        <p><strong>Configurando Validações:</strong></p>
+                        <ol>
+                            <li>Expanda o painel "Configuração de Validação"</li>
+                            <li>Selecione um campo na lista</li>
+                            <li>Configure validações disponíveis:
+                                <ul>
+                                    <li>Campo Obrigatório</li>
+                                    <li>Tamanho Mínimo/Máximo</li>
+                                    <li>Não permitir zeros</li>
+                                    <li>Não permitir espaços</li>
+                                    <li>Padrões (email, CPF, telefone, etc.)</li>
+                                </ul>
+                            </li>
+                        </ol>
+                        
+                        <p><strong>Teclas de Validação:</strong></p>
+                        <p>Marque quais teclas devem validar os campos antes de executar (padrão: ENTER)</p>
+                        
+                        <div class="help-tip">
+                            ⚠️ Se a validação falhar, a mensagem de erro aparece na linha 1 da tela
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">📤 5. Exportação</h3>
+                    <div class="help-content">
+                        <p><strong>Exportar Regras de Navegação:</strong></p>
+                        <ul>
+                            <li>JSON - Formato estruturado</li>
+                            <li>COBOL - Código com EVALUATE</li>
+                            <li>SQL - INSERT statements</li>
+                            <li>Excel/CSV - Planilhas</li>
+                            <li>XML - Integração</li>
+                            <li>HTML - Documentação</li>
+                        </ul>
+                        
+                        <p><strong>Exportar Validações:</strong></p>
+                        <ul>
+                            <li><strong>BMS:</strong> Definições DFHMDF completas
+                                <ul>
+                                    <li>COM variáveis: Cria labels nomeados</li>
+                                    <li>SEM variáveis: Labels como comentários</li>
+                                </ul>
+                            </li>
+                            <li><strong>COBOL:</strong> Programa com validações</li>
+                            <li><strong>Copybook:</strong> Definições de campos</li>
+                        </ul>
+                        
+                        <div class="help-tip">
+                            📝 <strong>BMS:</strong> Textos longos são automaticamente quebrados em múltiplos DFHMDF respeitando as 72 colunas do mainframe
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">⌨️ 6. Atalhos de Teclado</h3>
+                    <div class="help-content">
+                        <table class="shortcuts-table">
+                            <tr>
+                                <td><kbd>Tab</kbd></td>
+                                <td>Próximo campo</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Shift+Tab</kbd></td>
+                                <td>Campo anterior</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Enter</kbd></td>
+                                <td>Executar ENTER</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>F1</kbd> - <kbd>F12</kbd></td>
+                                <td>Teclas PF1-PF12</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Home</kbd></td>
+                                <td>Primeiro campo</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>End</kbd></td>
+                                <td>Último campo</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Esc</kbd></td>
+                                <td>Limpar campo atual</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">💡 7. Dicas e Truques</h3>
+                    <div class="help-content">
+                        <ul>
+                            <li>🎨 Use o botão <strong>🌓</strong> para alternar entre tema claro e escuro</li>
+                            <li>📥 Importe regras de navegação de projetos anteriores</li>
+                            <li>🔄 Você pode recarregar o mesmo arquivo TXT após modificá-lo</li>
+                            <li>🗑️ Clique no X vermelho para remover telas ou regras</li>
+                            <li>🎯 Campos obrigatórios são validados apenas se marcados</li>
+                            <li>📊 Exporte para Excel para compartilhar com a equipe</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3 class="help-section-title">❓ 8. Problemas Comuns</h3>
+                    <div class="help-content">
+                        <p><strong>PF keys não aparecem:</strong></p>
+                        <ul>
+                            <li>Verifique o formato: <code>PF3=SAIR</code></li>
+                            <li>Certifique-se de que está em uma linha do arquivo</li>
+                            <li>Confira o console do navegador (F12) para logs</li>
+                        </ul>
+                        
+                        <p><strong>Arquivo BMS não carrega:</strong></p>
+                        <ul>
+                            <li>Deve conter DFHMSD, DFHMDI ou DFHMDF</li>
+                            <li>Verifique a sintaxe do arquivo</li>
+                        </ul>
+                        
+                        <p><strong>Navegação não funciona:</strong></p>
+                        <ul>
+                            <li>Verifique se há regra criada para aquela tecla</li>
+                            <li>Certifique-se de que a tela de destino está selecionada</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-footer">
+                    <p>📧 Tem dúvidas? Abra o console do navegador (F12) para ver logs detalhados</p>
+                    <p style="margin-top: 10px; opacity: 0.7; font-size: 12px;">
+                        Simulador CICS 3270 Multi-Screen Terminal - Versão 2.0
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/app.js"></script>
 </body>
 </html>
